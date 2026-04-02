@@ -1,38 +1,43 @@
-from app.env import EmailEnv
-from app.models import Action
-import random
+from fastapi import FastAPI
 
-print("[START]")
+app = FastAPI()
 
-env = EmailEnv()
-obs = env.reset()
+emails = [
+    {"subject": "Team Meeting Reminder", "sender": "team"},
+    {"subject": "URGENT: Production Server Down", "sender": "boss"},
+    {"subject": "Weekly Report Submission", "sender": "team"},
+]
 
-rewards = []
+@app.post("/reset")
+def reset():
+    return {"message": "Environment reset successful"}
 
-for i, email in enumerate(obs.emails):
+@app.get("/")
+def root():
+    return {"message": "Smart Email Triage Env is running"}
 
-    print(f"\nProcessing Email {i+1}")
-    print("Subject:", email.subject)
-    print("Sender:", email.sender)
+@app.post("/step")
+def step():
+    results = []
+    score = 0
 
-    # small randomness to simulate imperfect agent
-    if random.random() < 0.05:
-        action = Action(action_type="reply", email_index=i)
-    else:
-        if email.sender == "boss":
-            action = Action(action_type="escalate", email_index=i)
-        elif email.sender == "spam":
-            action = Action(action_type="ignore", email_index=i)
+    for email in emails:
+        if "URGENT" in email["subject"] or email["sender"] == "boss":
+            action = "escalate"
+            reward = 1.0
         else:
-            action = Action(action_type="reply", email_index=i)
+            action = "reply"
+            reward = 0.8
 
-    print("Action Taken:", action.action_type)
+        score += reward
 
-    result = env.step(action)
+        results.append({
+            "email": email,
+            "action": action,
+            "reward": reward
+        })
 
-    print("Reward:", result.reward)
-
-    rewards.append(result.reward)
-
-print("\n[END]")
-print("Final Score:", sum(rewards))
+    return {
+        "results": results,
+        "final_score": score
+    }
