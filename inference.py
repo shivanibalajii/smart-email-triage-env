@@ -1,10 +1,8 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-import uvicorn
 
 app = FastAPI()
 
-# simple state
 emails = []
 current_index = 0
 
@@ -57,6 +55,3 @@ def step(input: ActionInput):
 @app.get("/")
 def home():
     return {"status": "running"}
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=7860)
