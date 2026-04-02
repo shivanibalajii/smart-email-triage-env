@@ -1,0 +1,28 @@
+name: smart-email-triage-env
+description: Simulates an AI assistant handling real-world email workflows
+version: 1.0
+
+entry_point: app.env:EmailEnv
+
+actions:
+  type: object
+  properties:
+    action_type:
+      type: string
+      enum: [reply, ignore, escalate]
+    email_index:
+      type: integer
+
+observation:
+  type: object
+  properties:
+    emails:
+      type: array
+    step_count:
+      type: integer
+
+reward:
+  type: float
+
+episode:
+  max_steps: 10
