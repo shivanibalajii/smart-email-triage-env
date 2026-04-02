@@ -3,12 +3,13 @@ from pydantic import BaseModel
 
 app = FastAPI()
 
-# Global state
 emails = []
 current_index = 0
+step_count = 0
 
 class ActionInput(BaseModel):
-    action: str
+    action_type: str
+    email_index: int
 
 @app.get("/")
 def home():
@@ -16,34 +17,34 @@ def home():
 
 @app.post("/reset")
 def reset():
-    global emails, current_index
+    global emails, current_index, step_count
 
     emails = [
-        {"subject": "Team Meeting Reminder", "sender": "team"},
-        {"subject": "URGENT: Production Server Down", "sender": "boss"},
-        {"subject": "Weekly Report Submission", "sender": "team"}
+        {"subject": "Team Meeting Reminder", "sender": "team", "body": "Meeting at 10 AM", "priority": 2},
+        {"subject": "URGENT: Production Server Down", "sender": "boss", "body": "Fix immediately", "priority": 3},
+        {"subject": "Weekly Report Submission", "sender": "team", "body": "Submit by EOD", "priority": 2}
     ]
 
     current_index = 0
+    step_count = 0
 
     return {
         "observation": {
-            "subject": emails[0]["subject"],
-            "sender": emails[0]["sender"]
-        },
-        "reward": 0.0,
-        "done": False,
-        "info": {}
+            "emails": emails,
+            "step_count": step_count
+        }
     }
 
 @app.post("/step")
 def step(input: ActionInput):
-    global current_index, emails
+    global current_index, emails, step_count
 
-    # If already finished
     if current_index >= len(emails):
         return {
-            "observation": {},
+            "observation": {
+                "emails": emails,
+                "step_count": step_count
+            },
             "reward": 0.0,
             "done": True,
             "info": {}
@@ -51,25 +52,24 @@ def step(input: ActionInput):
 
     email = emails[current_index]
 
-    # Reward logic
-    if "urgent" in email["subject"].lower():
-        reward = 1.0 if input.action == "escalate" else 0.0
+    # reward logic
+    if email["sender"] == "boss":
+        reward = 1.0 if input.action_type == "escalate" else -1.0
+    elif email["sender"] == "team":
+        reward = 0.8 if input.action_type == "reply" else -0.3
     else:
-        reward = 1.0 if input.action == "reply" else 0.0
+        reward = 0.5 if input.action_type == "ignore" else -0.2
 
     current_index += 1
+    step_count += 1
+
     done = current_index >= len(emails)
 
-    observation = (
-        {
-            "subject": emails[current_index]["subject"],
-            "sender": emails[current_index]["sender"]
-        }
-        if not done else {}
-    )
-
     return {
-        "observation": observation,
+        "observation": {
+            "emails": emails,
+            "step_count": step_count
+        },
         "reward": reward,
         "done": done,
         "info": {}
