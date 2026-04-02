@@ -1,5 +1,7 @@
 app/
-openenv.yaml
+my_app/
 venv/
 __pycache__/
 *.pyc
+README.md
+requirements.txt
