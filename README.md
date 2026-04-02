@@ -1,99 +1,75 @@
-# 📧 Email Triage Environment (OpenEnv)
+# 📧 Email Triage Environment
 
-## What this is
+Built as part of an OpenEnv environment design challenge.
 
-This project is a simple simulation of something we deal with every day — managing emails.
+## What I built
 
-The idea is to model how an AI assistant could go through a set of emails and decide what to do with each one:
-- reply to it  
-- ignore it  
-- or escalate it if it’s important  
+I tried to model something simple but real — how we deal with emails.
 
-Instead of building a full AI system, I focused on building the **environment** where an agent can learn and be evaluated.
+Instead of just classifying emails, the environment simulates actually taking actions on them. For each email, the agent has to decide whether to reply, ignore, or escalate it.
 
 ---
 
-## Why this matters
+## Why this idea
 
-In real life, inboxes get messy fast. Important emails can be missed, and low-value ones waste time.
+Email overload is something everyone deals with. Important emails get missed, and a lot of time goes into handling things that don’t really matter.
 
-This environment tries to capture that problem in a clean way:
-- some emails are critical  
-- some are normal  
-- some are just noise  
-
-The goal is to take the right action for each.
+So the goal here was to create a small environment where an agent can learn to make better decisions based on priority.
 
 ---
 
-## How the environment works
+## How it works
 
-The environment follows a simple loop:
+Each run generates a small set of emails. Every email has:
+- a subject  
+- a body  
+- a sender (boss, team, or spam)  
+- a priority level  
 
-- `reset()` → generates a fresh set of emails  
-- `step(action)` → applies an action and returns a reward  
-- `state()` → shows the current progress  
+The agent processes them one by one.
 
-Each run contains a small batch of emails, and the agent processes them one by one.
-
----
-
-## What an email looks like
-
-Each email has:
-- subject  
-- body  
-- sender (boss, team, or spam)  
-- priority (1–3)
-
-The emails are slightly randomized every time, so it doesn’t feel like a fixed toy example.
+At every step:
+- it picks an action  
+- the environment gives a reward  
+- and moves forward  
 
 ---
 
 ## Actions
 
-For each email, the agent can choose:
-
-- `reply`  
-- `ignore`  
-- `escalate`  
+The agent can choose:
+- reply  
+- ignore  
+- escalate  
 
 ---
 
-## Reward logic (how scoring works)
+## Reward logic
 
-The reward system is designed to feel realistic:
+I tried to keep the rewards realistic instead of uniform.
 
 - Boss emails → should be escalated  
 - Team emails → should be replied to  
 - Spam → should be ignored  
 
-Correct actions give positive rewards.  
-Wrong actions give penalties, and mistakes on important emails are punished more.
+Mistakes on important emails are penalized more than smaller mistakes.
 
-Example:
-- Correct boss handling → +1.0  
-- Wrong boss handling → -1.0  
-- Spam handled correctly → +0.5  
-
-This makes the agent prioritize properly instead of treating everything the same.
+The idea was to make the agent actually care about priority, not just accuracy.
 
 ---
 
-## Difficulty levels
+## Small details I added
 
-The environment is designed with increasing complexity:
-
-- Easy → just identify spam vs important  
-- Medium → choose correct action per email  
-- Hard → handle multiple emails with priority  
+- Emails are slightly randomized every run so it’s not fixed  
+- The reward system isn’t binary — it gives partial credit  
+- The environment runs step-by-step instead of all at once  
 
 ---
 
-## Running the project
-
-Create and activate a virtual environment:
+## Running it
 
 ```bash
 python3 -m venv venv
 source venv/bin/activate
+pip install -r requirements.txt
+python inference.py
