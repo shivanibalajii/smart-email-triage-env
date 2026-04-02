@@ -4,11 +4,11 @@ import uvicorn
 
 app = FastAPI()
 
-# Simple state
+# simple state
 emails = []
 current_index = 0
 
-class StepInput(BaseModel):
+class ActionInput(BaseModel):
     action: str
 
 @app.post("/reset")
@@ -20,6 +20,7 @@ def reset():
         {"subject": "URGENT: Production Server Down", "sender": "boss"},
         {"subject": "Weekly Report Submission", "sender": "team"}
     ]
+
     current_index = 0
 
     return {
@@ -29,13 +30,13 @@ def reset():
     }
 
 @app.post("/step")
-def step(input: StepInput):
+def step(input: ActionInput):
     global current_index
 
+    email = emails[current_index]
     reward = 0
 
-    # simple logic
-    if "urgent" in emails[current_index]["subject"].lower():
+    if "urgent" in email["subject"].lower():
         if input.action == "escalate":
             reward = 1
     else:
@@ -43,7 +44,6 @@ def step(input: StepInput):
             reward = 1
 
     current_index += 1
-
     done = current_index >= len(emails)
 
     observation = emails[current_index] if not done else {}
