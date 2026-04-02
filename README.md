@@ -14,7 +14,7 @@ The idea is simple: emails come in, and the system decides what to do with them 
 - Assigns a reward based on that decision
 - Calculates a final score
 
-It’s not a full RL model yet — more like a clean environment setup that could later be used to plug in a learning algorithm.
+It’s not a full RL model yet, more like a clean environment setup that could later be used to plug in a learning algorithm.
 
 ---
 
