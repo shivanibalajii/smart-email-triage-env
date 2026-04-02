@@ -1,75 +1,47 @@
-# 📧 Email Triage Environment
+# Smart Email Triage Environment
 
-Built as part of an OpenEnv environment design challenge.
+I built this as a small experiment to simulate how an agent could handle emails based on priority.
 
-## What I built
-
-I tried to model something simple but real — how we deal with emails.
-
-Instead of just classifying emails, the environment simulates actually taking actions on them. For each email, the agent has to decide whether to reply, ignore, or escalate it.
+The idea is simple: emails come in, and the system decides what to do with them (reply, escalate, etc.) while getting a reward based on whether the decision makes sense.
 
 ---
 
-## Why this idea
+## What it does
 
-Email overload is something everyone deals with. Important emails get missed, and a lot of time goes into handling things that don’t really matter.
+- Takes a few sample emails
+- Looks at things like subject and sender
+- Chooses an action (reply / escalate)
+- Assigns a reward based on that decision
+- Calculates a final score
 
-So the goal here was to create a small environment where an agent can learn to make better decisions based on priority.
+It’s not a full RL model yet — more like a clean environment setup that could later be used to plug in a learning algorithm.
+
+---
+
+## Why I made this
+
+Email overload is a real problem, especially in work settings. Not everything needs the same level of attention.
+
+I wanted to explore how a system could:
+- prioritize urgent emails
+- avoid unnecessary escalation
+- make consistent decisions
+
+This is a small step toward that.
 
 ---
 
 ## How it works
 
-Each run generates a small set of emails. Every email has:
-- a subject  
-- a body  
-- a sender (boss, team, or spam)  
-- a priority level  
+The current logic is rule-based:
+- Emails marked “URGENT” or from a boss → escalate
+- Everything else → reply
 
-The agent processes them one by one.
-
-At every step:
-- it picks an action  
-- the environment gives a reward  
-- and moves forward  
+Each action gets a reward, and the total score reflects how well the system performed.
 
 ---
 
-## Actions
-
-The agent can choose:
-- reply  
-- ignore  
-- escalate  
-
----
-
-## Reward logic
-
-I tried to keep the rewards realistic instead of uniform.
-
-- Boss emails → should be escalated  
-- Team emails → should be replied to  
-- Spam → should be ignored  
-
-Mistakes on important emails are penalized more than smaller mistakes.
-
-The idea was to make the agent actually care about priority, not just accuracy.
-
----
-
-## Small details I added
-
-- Emails are slightly randomized every run so it’s not fixed  
-- The reward system isn’t binary — it gives partial credit  
-- The environment runs step-by-step instead of all at once  
-
----
-
-## Running it
+## Running it locally
 
 ```bash
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
 python inference.py
