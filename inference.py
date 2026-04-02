@@ -22,14 +22,21 @@ def reset():
     current_index = 0
 
     return {
-        "observation": emails[current_index],
+        "observation": emails[0],
         "reward": 0,
         "done": False
     }
 
 @app.post("/step")
 def step(input: ActionInput):
-    global current_index
+    global current_index, emails
+
+    if current_index >= len(emails):
+        return {
+            "observation": {},
+            "reward": 0,
+            "done": True
+        }
 
     email = emails[current_index]
     reward = 0
