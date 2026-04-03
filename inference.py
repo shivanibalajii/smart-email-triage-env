@@ -1,25 +1,29 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
+import os
 
 app = FastAPI()
 
-# Global state
+# REQUIRED ENV VARIABLES
+API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
+MODEL_NAME = os.getenv("MODEL_NAME", "gpt-3.5-turbo")
+HF_TOKEN = os.getenv("HF_TOKEN")
+
+# GLOBAL STATE
 emails = []
 current_index = 0
 
-
+# REQUEST MODEL
 class ActionInput(BaseModel):
     action: str
 
 
-@app.get("/")
-def home():
-    return {"status": "ok"}
-
-
+# ✅ RESET ENDPOINT
 @app.post("/reset")
 def reset():
     global emails, current_index
+
+    print("START")  # REQUIRED LOG
 
     emails = [
         {"subject": "Team Meeting Reminder", "sender": "team"},
@@ -40,12 +44,15 @@ def reset():
     }
 
 
+# ✅ STEP ENDPOINT
 @app.post("/step")
 def step(input: ActionInput):
     global current_index, emails
 
-    # If already finished
+    print("STEP")  # REQUIRED LOG
+
     if current_index >= len(emails):
+        print("END")
         return {
             "observation": {},
             "reward": 0.0,
@@ -55,7 +62,7 @@ def step(input: ActionInput):
 
     email = emails[current_index]
 
-    # Reward logic
+    # SIMPLE LOGIC
     if "urgent" in email["subject"].lower():
         reward = 1.0 if input.action == "escalate" else 0.0
     else:
@@ -71,6 +78,9 @@ def step(input: ActionInput):
         }
         if not done else {}
     )
+
+    if done:
+        print("END")  # REQUIRED LOG
 
     return {
         "observation": observation,
