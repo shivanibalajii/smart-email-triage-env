@@ -1,9 +1,9 @@
-FROM python:3.10-slim
+FROM python:3.9
 
 WORKDIR /app
 
-COPY inference.py .
+COPY . .
 
-RUN pip install fastapi uvicorn pydantic
+RUN pip install --no-cache-dir fastapi uvicorn
 
-CMD ["uvicorn", "inference:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "inference:app", "--host", "0.0.0.0", "--port", "7860"]
