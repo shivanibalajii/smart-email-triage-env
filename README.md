@@ -38,6 +38,7 @@ The current logic is rule-based:
 - Everything else → reply
 
 Each action gets a reward, and the total score reflects how well the system performed.
+update for validation
 
 ---
 
