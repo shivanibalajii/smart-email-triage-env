@@ -1,11 +1,19 @@
 name: smart-email-triage
 version: 1.0.0
-
+description: RL environment for intelligent email triage and prioritization
 environment:
-  entry_point: server.email_environment:EmailEnvironment
-
+  entry_point: email_environment:EmailEnvironment
+  port: 7860
 models:
   action: models.EmailAction
   observation: models.EmailObservation
-
-description: RL environment for intelligent email triage and prioritization
+actions:
+  - reply
+  - escalate
+  - archive
+  - flag
+reward:
+  min: -2.0
+  max: 2.0
+episodes:
+  length: 25
