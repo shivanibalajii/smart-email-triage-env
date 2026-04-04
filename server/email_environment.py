@@ -1,3 +1,4 @@
+import random
 from models import EmailAction, EmailObservation
 
 EMAILS = [
@@ -61,6 +62,7 @@ class EmailEnvironment:
 
     def reset(self):
         self.emails = EMAILS.copy()
+        random.shuffle(self.emails)
         self.current_index = 0
         self.history = []
         email = self.emails[0]
@@ -85,13 +87,13 @@ class EmailEnvironment:
             else:
                 reward = 1.0
         elif correct == "escalate" and action.decision != "escalate":
-            reward = -2.0  # Missing urgent email is worst
+            reward = -2.0
         elif correct == "flag" and action.decision == "archive":
-            reward = -1.5  # Missing security threat is very bad
+            reward = -1.5
         elif correct != "escalate" and action.decision == "escalate":
-            reward = -1.0  # Unnecessary escalation
+            reward = -1.0
         else:
-            reward = -0.5  # Wrong but not catastrophic
+            reward = -0.5
 
         self.history.append({
             "email_id": email["id"],
