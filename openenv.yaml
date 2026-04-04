@@ -1,2 +1,11 @@
 name: smart-email-triage
-version: 1
+version: 1.0.0
+
+environment:
+  entry_point: server.email_environment:EmailEnvironment
+
+models:
+  action: models.EmailAction
+  observation: models.EmailObservation
+
+description: RL environment for intelligent email triage and prioritization
