@@ -1,9 +1,5 @@
-FROM python:3.9
-
+FROM python:3.10
 WORKDIR /app
-
 COPY . .
-
-RUN pip install fastapi uvicorn
-
+RUN pip install -r requirements.txt
 CMD ["uvicorn", "inference:app", "--host", "0.0.0.0", "--port", "7860"]
