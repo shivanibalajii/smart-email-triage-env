@@ -7,8 +7,8 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 
 MODEL_NAME = os.environ.get("MODEL_NAME", "meta-llama/Llama-3.3-70B-Instruct")
-API_BASE_URL = os.environ["API_BASE_URL"]
-API_KEY = os.environ["API_KEY"]
+API_BASE_URL = os.environ.get("API_BASE_URL", "https://api-inference.huggingface.co/v1/")
+API_KEY = os.environ.get("API_KEY", os.environ.get("HF_TOKEN", "dummy"))
 
 client = OpenAI(
     base_url=API_BASE_URL,
