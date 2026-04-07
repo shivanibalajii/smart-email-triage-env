@@ -1,19 +1,57 @@
-name: smart-email-triage
-version: 1.0.0
-description: RL environment for intelligent email triage and prioritization
-environment:
-  entry_point: email_environment:EmailEnvironment
-  port: 7860
-models:
-  action: models.EmailAction
-  observation: models.EmailObservation
-actions:
-  - reply
-  - escalate
-  - archive
-  - flag
+name: smart-email-triage-env
+version: "1.0.0"
+description: >
+  An RL environment where an agent triages emails by classifying them as
+  escalate, reply, archive, or flag. Simulates real-world email management.
+author: shivanibalajii
+space_url: https://huggingface.co/spaces/shivanibalajii/smart-email-triage-env-final
+
+tasks:
+  - id: easy
+    description: Classify obviously spam or urgent emails
+    difficulty: easy
+    min_score: 0.0
+    max_score: 1.0
+  - id: medium
+    description: Classify emails requiring context awareness
+    difficulty: medium
+    min_score: 0.0
+    max_score: 1.0
+  - id: hard
+    description: Classify ambiguous emails needing nuanced judgment
+    difficulty: hard
+    min_score: 0.0
+    max_score: 1.0
+
+observation_space:
+  email_id: integer
+  subject: string
+  sender: string
+  body: string
+  task: string
+  difficulty: string
+
+action_space:
+  action:
+    type: string
+    values: [escalate, reply, archive, flag]
+
 reward:
-  min: -2.0
-  max: 2.0
-episodes:
-  length: 25
+  min: 0.0
+  max: 1.0
+  description: >
+    1.0 for correct classification, partial credit for related actions,
+    0.0 for dangerous misclassifications.
+
+endpoints:
+  reset: POST /reset?task={easy|medium|hard}
+  step: POST /step
+  state: GET /state
+  grade: GET /grade
+  grade_llm: GET /grade_llm
+  history: GET /history
+
+baseline_scores:
+  easy: 0.85
+  medium: 0.75
+  hard: 0.65
