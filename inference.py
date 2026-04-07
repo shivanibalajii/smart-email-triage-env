@@ -67,15 +67,6 @@ state = {
     "correct": 0,
 }
 
-def log_start(task_id, task_input):
-    print(json.dumps({"event": "START", "task_id": task_id, "input": task_input}), flush=True)
-
-def log_step(task_id, step_name, details):
-    print(json.dumps({"event": "STEP", "task_id": task_id, "step": step_name, "details": details}), flush=True)
-
-def log_end(task_id, output, success=True):
-    print(json.dumps({"event": "END", "task_id": task_id, "output": output, "success": success}), flush=True)
-
 def get_reward(true_label, action):
     return REWARD_MAP.get((true_label, action), -0.5)
 
@@ -89,7 +80,6 @@ def reset():
     state["total_reward"] = 0.0
     state["correct"] = 0
     first = state["emails"][0]
-    log_start("episode_start", {"email_id": first["id"], "subject": first["subject"]})
     return {
         "email_id": first["id"],
         "subject": first["subject"],
@@ -114,12 +104,6 @@ def step(req: StepRequest):
     state["total_reward"] += reward
     if correct:
         state["correct"] += 1
-    log_step(f"email_{email['id']}", "decision", {
-        "action": action,
-        "true_label": true_label,
-        "reward": reward,
-        "correct": correct,
-    })
     state["history"].append({
         "email_id": email["id"],
         "subject": email["subject"],
@@ -131,10 +115,6 @@ def step(req: StepRequest):
     state["current_index"] += 1
     done = state["current_index"] >= len(state["emails"])
     if done:
-        log_end("episode_end", {
-            "total_reward": state["total_reward"],
-            "accuracy": state["correct"] / len(state["emails"]),
-        })
         return {
             "done": True,
             "reward": reward,
@@ -176,7 +156,6 @@ def grade_llm():
         return {"message": "No episode run yet."}
     try:
         summary = json.dumps(state["history"][:5], indent=2)
-        log_step("grade_llm", "llm_call", {"model": MODEL_NAME})
         response = client.chat.completions.create(
             model=MODEL_NAME,
             messages=[
@@ -186,26 +165,24 @@ def grade_llm():
             max_tokens=300,
         )
         evaluation = response.choices[0].message.content.strip()
-        log_end("grade_llm", {"evaluation": evaluation})
         return {
             "accuracy": round(state["correct"] / len(state["history"]) * 100, 1),
             "total_reward": round(state["total_reward"], 2),
             "llm_evaluation": evaluation,
         }
     except Exception as e:
-        log_end("grade_llm", {"error": str(e)}, success=False)
         return {"error": str(e)}
 
 def run_agent():
-    reset()
-    for i in range(len(EMAILS)):
-        email = state["emails"][i] if i < len(state["emails"]) else None
-        if not email:
-            break
+    emails = EMAILS.copy()
+    random.shuffle(emails)
+    total_reward = 0.0
+    correct = 0
+
+    for step_num, email in enumerate(emails, 1):
         task_id = f"email_{email['id']}"
-        log_start(task_id, {"subject": email["subject"], "sender": email["sender"]})
+        print(f"[START] task={task_id}", flush=True)
         try:
-            log_step(task_id, "llm_call", {"model": MODEL_NAME})
             response = client.chat.completions.create(
                 model=MODEL_NAME,
                 messages=[
@@ -215,13 +192,20 @@ def run_agent():
                 max_tokens=10,
             )
             action = response.choices[0].message.content.strip().lower()
-            log_step(task_id, "action", {"action": action})
-            result = step(StepRequest(action=action))
-            log_end(task_id, result, success=True)
-        except Exception as e:
-            log_step(task_id, "error", {"error": str(e)})
-            result = step(StepRequest(action="reply"))
-            log_end(task_id, {"error": str(e), "fallback": result}, success=False)
+            if action not in ("escalate", "reply", "archive", "flag"):
+                action = "reply"
+        except Exception:
+            action = "reply"
+
+        reward = get_reward(email["label"], action)
+        total_reward += reward
+        if action == email["label"]:
+            correct += 1
+
+        print(f"[STEP] step={step_num} action={action} true_label={email['label']} reward={reward}", flush=True)
+
+    score = round(correct / len(emails), 2)
+    print(f"[END] task=smart_email_triage score={score} steps={len(emails)}", flush=True)
 
 if __name__ == "__main__":
     run_agent()
