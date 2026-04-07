@@ -10,18 +10,18 @@ tasks:
   - id: easy
     description: Classify obviously spam or urgent emails
     difficulty: easy
-    min_score: 0.0
-    max_score: 1.0
+    min_score: 0.01
+    max_score: 0.99
   - id: medium
     description: Classify emails requiring context awareness
     difficulty: medium
-    min_score: 0.0
-    max_score: 1.0
+    min_score: 0.01
+    max_score: 0.99
   - id: hard
     description: Classify ambiguous emails needing nuanced judgment
     difficulty: hard
-    min_score: 0.0
-    max_score: 1.0
+    min_score: 0.01
+    max_score: 0.99
 
 observation_space:
   email_id: integer
@@ -37,11 +37,11 @@ action_space:
     values: [escalate, reply, archive, flag]
 
 reward:
-  min: 0.0
-  max: 1.0
+  min: 0.01
+  max: 0.99
   description: >
-    1.0 for correct classification, partial credit for related actions,
-    0.0 for dangerous misclassifications.
+    0.99 for correct classification, partial credit for related actions,
+    0.01 for dangerous misclassifications.
 
 endpoints:
   reset: POST /reset?task={easy|medium|hard}
