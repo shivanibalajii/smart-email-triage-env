@@ -1,66 +1,89 @@
 import os
-import sys
 import json
 import random
 from openai import OpenAI
 from fastapi import FastAPI
 from pydantic import BaseModel
+from typing import Any
 
 MODEL_NAME = os.environ.get("MODEL_NAME", "meta-llama/Llama-3.3-70B-Instruct")
 API_BASE_URL = os.environ.get("API_BASE_URL", "https://api-inference.huggingface.co/v1/")
 API_KEY = os.environ.get("API_KEY", os.environ.get("HF_TOKEN", "dummy"))
 
-client = OpenAI(
-    base_url=API_BASE_URL,
-    api_key=API_KEY,
-)
-
+client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
 app = FastAPI(title="Smart Email Triage Environment")
 
-EMAILS = [
-    {"id": 1, "subject": "URGENT: Production server is down", "body": "Our main server crashed. Revenue loss every minute.", "sender": "ops@company.com", "label": "escalate"},
-    {"id": 2, "subject": "Win a FREE iPhone now!", "body": "Click here to claim your prize!", "sender": "promo@spam.com", "label": "archive"},
-    {"id": 3, "subject": "Suspicious login from unknown device", "body": "Someone logged into your account from Russia.", "sender": "security@bank.com", "label": "flag"},
-    {"id": 4, "subject": "Team lunch tomorrow?", "body": "Hey, are you free for lunch at 1pm?", "sender": "friend@example.com", "label": "reply"},
-    {"id": 5, "subject": "CRITICAL: Database breach detected", "body": "Unauthorized access to customer data detected now.", "sender": "security@company.com", "label": "escalate"},
-    {"id": 6, "subject": "Your account password", "body": "Click this link to verify your bank password immediately.", "sender": "noreply@phish.com", "label": "flag"},
-    {"id": 7, "subject": "Invoice #4521 attached", "body": "Please find attached the invoice for last month.", "sender": "billing@vendor.com", "label": "reply"},
-    {"id": 8, "subject": "Congratulations! You won $1,000,000", "body": "Send us your bank details to claim your winnings.", "sender": "lottery@scam.com", "label": "archive"},
-    {"id": 9, "subject": "URGENT: CEO needs wire transfer", "body": "This is the CEO. Transfer $50,000 immediately. Keep it secret.", "sender": "ceo.fake@gmail.com", "label": "flag"},
-    {"id": 10, "subject": "Meeting rescheduled to 3pm", "body": "Hi, moving our sync to 3pm today instead of 2pm.", "sender": "manager@company.com", "label": "reply"},
-    {"id": 11, "subject": "Server CPU at 98% — alert", "body": "Automated alert: CPU usage critical on prod-server-01.", "sender": "monitoring@company.com", "label": "escalate"},
-    {"id": 12, "subject": "Newsletter: Top 10 AI trends", "body": "This week in AI: GPT-5, robotics, and more.", "sender": "newsletter@techblog.com", "label": "archive"},
-    {"id": 13, "subject": "Your prescription is ready", "body": "Your medication is ready for pickup at CVS.", "sender": "cvs@pharmacy.com", "label": "reply"},
-    {"id": 14, "subject": "URGENT: Legal action pending", "body": "You must respond to this legal notice within 24 hours.", "sender": "legal@company.com", "label": "escalate"},
-    {"id": 15, "subject": "Phishing link detected in email", "body": "Our system flagged an email with a malicious URL sent to all staff.", "sender": "it@company.com", "label": "flag"},
-    {"id": 16, "subject": "Happy Birthday!", "body": "Wishing you a wonderful birthday!", "sender": "friend@gmail.com", "label": "reply"},
-    {"id": 17, "subject": "50% off sale this weekend only", "body": "Shop now and save big this weekend!", "sender": "deals@store.com", "label": "archive"},
-    {"id": 18, "subject": "Data center fire — evacuate now", "body": "Emergency: fire alarm triggered in server room B.", "sender": "facilities@company.com", "label": "escalate"},
-    {"id": 19, "subject": "Verify your email address", "body": "Click to verify your account on our platform.", "sender": "no-reply@legit.com", "label": "reply"},
-    {"id": 20, "subject": "Ransomware detected on workstation", "body": "Workstation WS-042 is infected. Disconnect from network immediately.", "sender": "security@company.com", "label": "flag"},
-    {"id": 21, "subject": "Project deadline moved up", "body": "Client wants delivery by Friday instead of next week.", "sender": "pm@company.com", "label": "reply"},
-    {"id": 22, "subject": "Free vacation giveaway", "body": "You have been selected for a free cruise. Claim now!", "sender": "promo@fakevacation.com", "label": "archive"},
-    {"id": 23, "subject": "URGENT: Payment gateway is down", "body": "Customers cannot checkout. Fix immediately.", "sender": "ecommerce@company.com", "label": "escalate"},
-    {"id": 24, "subject": "Unusual API activity detected", "body": "10,000 failed login attempts on your API in the last hour.", "sender": "security@api.com", "label": "flag"},
-    {"id": 25, "subject": "Can you review my PR?", "body": "Hey, could you review pull request #142 when you get a chance?", "sender": "dev@company.com", "label": "reply"},
-]
+class Action(BaseModel):
+    action: str
 
-REWARD_MAP = {
-    ("escalate", "escalate"): 2.0,
-    ("flag", "flag"): 1.5,
-    ("reply", "reply"): 1.0,
-    ("archive", "archive"): 1.0,
-    ("escalate", "archive"): -2.0,
-    ("escalate", "reply"): -2.0,
-    ("escalate", "flag"): -0.5,
-    ("flag", "archive"): -1.5,
-    ("flag", "reply"): -1.5,
-    ("flag", "escalate"): -0.5,
-    ("archive", "escalate"): -1.0,
-    ("reply", "escalate"): -1.0,
+class Observation(BaseModel):
+    email_id: int
+    subject: str
+    sender: str
+    body: str
+    task: str
+    difficulty: str
+
+class Reward(BaseModel):
+    reward: float
+    correct: bool
+    true_label: str
+
+TASKS = {
+    "easy": {
+        "description": "Classify obviously spam or urgent emails",
+        "emails": [
+            {"id": 1, "subject": "Win a FREE iPhone now!", "body": "Click here to claim your prize!", "sender": "promo@spam.com", "label": "archive"},
+            {"id": 2, "subject": "URGENT: Production server is down", "body": "Our main server crashed. Revenue loss every minute.", "sender": "ops@company.com", "label": "escalate"},
+            {"id": 3, "subject": "Congratulations! You won $1,000,000", "body": "Send us your bank details.", "sender": "lottery@scam.com", "label": "archive"},
+            {"id": 4, "subject": "CRITICAL: Database breach detected", "body": "Unauthorized access to customer data.", "sender": "security@company.com", "label": "escalate"},
+            {"id": 5, "subject": "FREE vacation giveaway", "body": "You have been selected for a free cruise!", "sender": "promo@fake.com", "label": "archive"},
+        ]
+    },
+    "medium": {
+        "description": "Classify emails requiring context awareness",
+        "emails": [
+            {"id": 6, "subject": "Suspicious login from unknown device", "body": "Someone logged into your account from Russia.", "sender": "security@bank.com", "label": "flag"},
+            {"id": 7, "subject": "Invoice #4521 attached", "body": "Please find the invoice for last month.", "sender": "billing@vendor.com", "label": "reply"},
+            {"id": 8, "subject": "URGENT: CEO needs wire transfer", "body": "Transfer $50,000 immediately. Keep it secret.", "sender": "ceo.fake@gmail.com", "label": "flag"},
+            {"id": 9, "subject": "Meeting rescheduled to 3pm", "body": "Moving our sync to 3pm today.", "sender": "manager@company.com", "label": "reply"},
+            {"id": 10, "subject": "Phishing link detected in email", "body": "Our system flagged a malicious URL sent to all staff.", "sender": "it@company.com", "label": "flag"},
+        ]
+    },
+    "hard": {
+        "description": "Classify ambiguous emails needing nuanced judgment",
+        "emails": [
+            {"id": 11, "subject": "Your account password", "body": "Click this link to verify your bank password immediately.", "sender": "noreply@phish.com", "label": "flag"},
+            {"id": 12, "subject": "Server CPU at 98%", "body": "Automated alert: CPU usage critical on prod-server-01.", "sender": "monitoring@company.com", "label": "escalate"},
+            {"id": 13, "subject": "Verify your email address", "body": "Click to verify your account on our platform.", "sender": "no-reply@legit.com", "label": "reply"},
+            {"id": 14, "subject": "Ransomware detected on workstation", "body": "Workstation WS-042 infected. Disconnect immediately.", "sender": "security@company.com", "label": "escalate"},
+            {"id": 15, "subject": "Unusual API activity detected", "body": "10,000 failed login attempts on your API in the last hour.", "sender": "security@api.com", "label": "flag"},
+        ]
+    }
 }
 
+REWARD_MAP = {
+    ("escalate", "escalate"): 0.95,
+    ("flag", "flag"): 0.95,
+    ("reply", "reply"): 0.95,
+    ("archive", "archive"): 0.95,
+    ("escalate", "archive"): 0.05,
+    ("escalate", "reply"): 0.05,
+    ("escalate", "flag"): 0.3,
+    ("flag", "archive"): 0.05,
+    ("flag", "reply"): 0.05,
+    ("flag", "escalate"): 0.3,
+    ("archive", "escalate"): 0.1,
+    ("reply", "escalate"): 0.1,
+}
+
+def get_reward(true_label, action):
+    base = REWARD_MAP.get((true_label, action), 0.1)
+    noise = round(random.uniform(-0.04, 0.04), 3)
+    return round(min(0.99, max(0.01, base + noise)), 3)
+
 state = {
+    "task": "easy",
     "emails": [],
     "current_index": 0,
     "history": [],
@@ -68,28 +91,27 @@ state = {
     "correct": 0,
 }
 
-def get_reward(true_label, action):
-    base = REWARD_MAP.get((true_label, action), -0.5)
-    noise = round(random.uniform(-0.1, 0.1), 2)
-    return round(base + noise, 2)
-
 @app.post("/reset")
-def reset():
-    emails = EMAILS.copy()
+def reset(task: str = "easy"):
+    if task not in TASKS:
+        task = "easy"
+    emails = TASKS[task]["emails"].copy()
     random.shuffle(emails)
+    state["task"] = task
     state["emails"] = emails
     state["current_index"] = 0
     state["history"] = []
     state["total_reward"] = 0.0
     state["correct"] = 0
-    first = state["emails"][0]
-    return {
-        "email_id": first["id"],
-        "subject": first["subject"],
-        "body": first["body"],
-        "sender": first["sender"],
-        "remaining": len(state["emails"]),
-    }
+    first = emails[0]
+    return Observation(
+        email_id=first["id"],
+        subject=first["subject"],
+        sender=first["sender"],
+        body=first["body"],
+        task=task,
+        difficulty=task,
+    )
 
 class StepRequest(BaseModel):
     action: str
@@ -117,24 +139,30 @@ def step(req: StepRequest):
     })
     state["current_index"] += 1
     done = state["current_index"] >= len(state["emails"])
-    if done:
-        return {
-            "done": True,
-            "reward": reward,
-            "total_reward": state["total_reward"],
-            "accuracy": round(state["correct"] / len(state["emails"]) * 100, 1),
-        }
-    next_email = state["emails"][state["current_index"]]
+    obs = None if done else state["emails"][state["current_index"]]
     return {
-        "done": False,
-        "reward": reward,
-        "total_reward": state["total_reward"],
-        "next_email": {
-            "email_id": next_email["id"],
-            "subject": next_email["subject"],
-            "body": next_email["body"],
-            "sender": next_email["sender"],
-        },
+        "observation": None if done else Observation(
+            email_id=obs["id"],
+            subject=obs["subject"],
+            sender=obs["sender"],
+            body=obs["body"],
+            task=state["task"],
+            difficulty=state["task"],
+        ).dict(),
+        "reward": Reward(reward=reward, correct=correct, true_label=true_label).dict(),
+        "done": done,
+        "info": {"step": idx + 1, "total": len(state["emails"])},
+    }
+
+@app.get("/state")
+def get_state():
+    return {
+        "task": state["task"],
+        "current_index": state["current_index"],
+        "total_emails": len(state["emails"]),
+        "total_reward": round(state["total_reward"], 3),
+        "correct": state["correct"],
+        "accuracy": round(state["correct"] / max(1, state["current_index"]), 3),
     }
 
 @app.get("/history")
@@ -146,11 +174,15 @@ def grade():
     total = len(state["history"])
     if total == 0:
         return {"message": "No episode run yet. Call /reset then /step."}
+    raw_score = state["total_reward"] / total
+    score = round(min(0.99, max(0.01, raw_score)), 3)
     return {
+        "task": state["task"],
         "total_emails": total,
         "correct": state["correct"],
-        "accuracy": round(state["correct"] / total * 100, 1),
-        "total_reward": round(state["total_reward"], 2),
+        "accuracy": round(state["correct"] / total, 3),
+        "total_reward": round(state["total_reward"], 3),
+        "score": score,
     }
 
 @app.get("/grade_llm")
@@ -168,22 +200,23 @@ def grade_llm():
             max_tokens=300,
         )
         evaluation = response.choices[0].message.content.strip()
+        raw_score = state["total_reward"] / max(1, len(state["history"]))
+        score = round(min(0.99, max(0.01, raw_score)), 3)
         return {
-            "accuracy": round(state["correct"] / len(state["history"]) * 100, 1),
-            "total_reward": round(state["total_reward"], 2),
+            "task": state["task"],
+            "score": score,
             "llm_evaluation": evaluation,
         }
     except Exception as e:
         return {"error": str(e)}
 
-def run_agent():
-    emails = EMAILS.copy()
+def run_task(task_name):
+    emails = TASKS[task_name]["emails"].copy()
     random.shuffle(emails)
     total_reward = 0.0
     correct = 0
-
     for step_num, email in enumerate(emails, 1):
-        task_id = f"email_{email['id']}"
+        task_id = f"{task_name}_email_{email['id']}"
         print(f"[START] task={task_id}", flush=True)
         try:
             response = client.chat.completions.create(
@@ -199,16 +232,23 @@ def run_agent():
                 action = "reply"
         except Exception:
             action = "reply"
-
         reward = get_reward(email["label"], action)
         total_reward += reward
         if action == email["label"]:
             correct += 1
-
         print(f"[STEP] step={step_num} action={action} true_label={email['label']} reward={reward}", flush=True)
+    raw_score = total_reward / len(emails)
+    score = round(min(0.99, max(0.01, raw_score)), 3)
+    print(f"[END] task={task_name} score={score} steps={len(emails)}", flush=True)
+    return score
 
-    score = round(correct / len(emails), 2)
-    print(f"[END] task=smart_email_triage score={score} steps={len(emails)}", flush=True)
+def run_agent():
+    scores = {}
+    for task_name in ["easy", "medium", "hard"]:
+        scores[task_name] = run_task(task_name)
+    overall = round(sum(scores.values()) / len(scores), 3)
+    overall = round(min(0.99, max(0.01, overall)), 3)
+    print(f"[END] task=smart_email_triage score={overall} steps={sum(len(TASKS[t]['emails']) for t in TASKS)}", flush=True)
 
 if __name__ == "__main__":
     run_agent()
