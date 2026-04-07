@@ -73,13 +73,13 @@ REWARD_MAP = {
     ("flag", "archive"): 0.05,
     ("flag", "reply"): 0.05,
     ("flag", "escalate"): 0.3,
-    ("archive", "escalate"): 0.1,
-    ("reply", "escalate"): 0.1,
+    ("archive", "escalate"): 0.15,
+    ("reply", "escalate"): 0.15,
 }
 
 def get_reward(true_label, action):
-    base = REWARD_MAP.get((true_label, action), 0.1)
-    noise = round(random.uniform(-0.04, 0.04), 3)
+    base = REWARD_MAP.get((true_label, action), 0.15)
+    noise = round(random.uniform(-0.03, 0.03), 3)
     return round(min(0.99, max(0.01, base + noise)), 3)
 
 state = {
@@ -174,15 +174,13 @@ def grade():
     total = len(state["history"])
     if total == 0:
         return {"message": "No episode run yet. Call /reset then /step."}
-    raw_score = state["total_reward"] / total
-    score = round(min(0.99, max(0.01, raw_score)), 3)
     return {
         "task": state["task"],
         "total_emails": total,
         "correct": state["correct"],
         "accuracy": round(state["correct"] / total, 3),
         "total_reward": round(state["total_reward"], 3),
-        "score": score,
+        "score": round(state["total_reward"] / total, 3),
     }
 
 @app.get("/grade_llm")
@@ -200,11 +198,9 @@ def grade_llm():
             max_tokens=300,
         )
         evaluation = response.choices[0].message.content.strip()
-        raw_score = state["total_reward"] / max(1, len(state["history"]))
-        score = round(min(0.99, max(0.01, raw_score)), 3)
         return {
             "task": state["task"],
-            "score": score,
+            "score": round(state["total_reward"] / max(1, len(state["history"])), 3),
             "llm_evaluation": evaluation,
         }
     except Exception as e:
@@ -237,8 +233,7 @@ def run_task(task_name):
         if action == email["label"]:
             correct += 1
         print(f"[STEP] step={step_num} action={action} true_label={email['label']} reward={reward}", flush=True)
-    raw_score = total_reward / len(emails)
-    score = round(min(0.99, max(0.01, raw_score)), 3)
+    score = round(total_reward / len(emails), 3)
     print(f"[END] task={task_name} score={score} steps={len(emails)}", flush=True)
     return score
 
@@ -247,7 +242,6 @@ def run_agent():
     for task_name in ["easy", "medium", "hard"]:
         scores[task_name] = run_task(task_name)
     overall = round(sum(scores.values()) / len(scores), 3)
-    overall = round(min(0.99, max(0.01, overall)), 3)
     print(f"[END] task=smart_email_triage score={overall} steps={sum(len(TASKS[t]['emails']) for t in TASKS)}", flush=True)
 
 if __name__ == "__main__":
