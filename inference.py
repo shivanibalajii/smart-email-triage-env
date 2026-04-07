@@ -99,7 +99,7 @@ def run_agent():
             log_end(task_id, result, success=True)
 
         except Exception as e:
-            # ✅ Wrap ALL risky ops in try/except — validator requirement
+            
             log_step(task_id, "error", {"error": str(e)})
             log_end(task_id, {"error": str(e)}, success=False)
 
