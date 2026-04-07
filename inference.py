@@ -7,11 +7,12 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 
 MODEL_NAME = os.environ.get("MODEL_NAME", "meta-llama/Llama-3.3-70B-Instruct")
-HF_TOKEN = os.environ.get("HF_TOKEN", "")
+API_BASE_URL = os.environ["API_BASE_URL"]
+API_KEY = os.environ["API_KEY"]
 
 client = OpenAI(
-    base_url="https://api-inference.huggingface.co/v1/",
-    api_key=HF_TOKEN if HF_TOKEN else "dummy",
+    base_url=API_BASE_URL,
+    api_key=API_KEY,
 )
 
 app = FastAPI(title="Smart Email Triage Environment")
