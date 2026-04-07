@@ -69,7 +69,9 @@ state = {
 }
 
 def get_reward(true_label, action):
-    return REWARD_MAP.get((true_label, action), -0.5)
+    base = REWARD_MAP.get((true_label, action), -0.5)
+    noise = round(random.uniform(-0.1, 0.1), 2)
+    return round(base + noise, 2)
 
 @app.post("/reset")
 def reset():
