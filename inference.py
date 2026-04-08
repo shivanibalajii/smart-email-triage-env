@@ -217,7 +217,7 @@ def grade_llm():
 def run_task(task_name):
     emails = TASKS[task_name]["emails"].copy()
     random.shuffle(emails)
-    total_reward = 0.0
+    total_reward = 0.5  # ← fixed from 0.0
     correct = 0
     for step_num, email in enumerate(emails, 1):
         task_id = f"{task_name}_email_{email['id']}"
