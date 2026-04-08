@@ -217,7 +217,7 @@ def grade_llm():
 def run_task(task_name):
     emails = TASKS[task_name]["emails"].copy()
     random.shuffle(emails)
-    total_reward = 0.5
+    total_reward = 0.0
     correct = 0
     num_emails = len(emails)
 
