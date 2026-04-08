@@ -54,6 +54,26 @@ EMAILS = [
      "body": "AWS costs have tripled this month, immediate review needed.", "label": "escalate"},
 ]
 
+REWARD_MAP = {
+    ("escalate", "escalate"): 0.95,
+    ("flag", "flag"):         0.95,
+    ("reply", "reply"):       0.95,
+    ("archive", "archive"):   0.95,
+    ("escalate", "archive"):  0.05,
+    ("escalate", "reply"):    0.05,
+    ("escalate", "flag"):     0.30,
+    ("flag", "archive"):      0.05,
+    ("flag", "reply"):        0.05,
+    ("flag", "escalate"):     0.30,
+    ("archive", "escalate"):  0.15,
+    ("reply", "escalate"):    0.15,
+}
+
+def get_reward(true_label, action):
+    base = REWARD_MAP.get((true_label, action), 0.15)
+    noise = round(random.uniform(-0.03, 0.03), 3)
+    return round(min(0.99, max(0.01, base + noise)), 3)
+
 class EmailEnvironment:
     def __init__(self):
         self.emails = []
@@ -71,29 +91,14 @@ class EmailEnvironment:
             email_subject=email["subject"],
             email_sender=email["sender"],
             email_body=email["body"],
-            reward=0.0,
+            reward=0.5,
             done=False
         )
 
     def step(self, action: EmailAction):
         email = self.emails[self.current_index]
         correct = email["label"]
-
-        if action.decision == correct:
-            if correct == "escalate":
-                reward = 2.0
-            elif correct == "flag":
-                reward = 1.5
-            else:
-                reward = 1.0
-        elif correct == "escalate" and action.decision != "escalate":
-            reward = -2.0
-        elif correct == "flag" and action.decision == "archive":
-            reward = -1.5
-        elif correct != "escalate" and action.decision == "escalate":
-            reward = -1.0
-        else:
-            reward = -0.5
+        reward = get_reward(correct, action.decision)
 
         self.history.append({
             "email_id": email["id"],
