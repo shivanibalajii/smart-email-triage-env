@@ -10,7 +10,6 @@ class EmailEnv:
         self.step_count = 0
 
     def reset(self):
-        # Realistic + random emails
         possible_emails = [
             Email(
                 subject="URGENT: Production Server Down",
@@ -51,7 +50,6 @@ class EmailEnv:
         ]
 
         self.emails = random.sample(possible_emails, k=3)
-
         self.current = 0
         self.step_count = 0
 
@@ -64,30 +62,30 @@ class EmailEnv:
         }
 
     def step(self, action: Action):
-
         email = self.emails[action.email_index]
 
-        reward = 0
-
-        # Reward design prioritizes critical decision-making:
-        # high-importance emails (boss) have higher penalties for mistakes
         if email.sender == "boss":
             if action.action_type == "escalate":
-                reward = 1.0
+                reward = 0.95
             else:
-                reward = -1.0
+                reward = 0.05
 
         elif email.sender == "team":
             if action.action_type == "reply":
-                reward = 0.8
+                reward = 0.85
             else:
-                reward = -0.3
+                reward = 0.15
 
         elif email.sender == "spam":
             if action.action_type == "ignore":
-                reward = 0.5
+                reward = 0.75
             else:
-                reward = -0.2
+                reward = 0.10
+
+        else:
+            reward = 0.50
+
+        reward = round(min(0.99, max(0.01, reward)), 3)
 
         self.step_count += 1
         self.current += 1
