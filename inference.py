@@ -221,8 +221,9 @@ def run_task(task_name):
     correct = 0
     num_emails = len(emails)
 
+    print(f"[START] task={task_name}", flush=True)
+
     for step_num, email in enumerate(emails, 1):
-        print(f"[START] task={task_name}", flush=True)
         try:
             response = client.chat.completions.create(
                 model=MODEL_NAME,
