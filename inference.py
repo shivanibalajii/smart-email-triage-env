@@ -217,11 +217,12 @@ def grade_llm():
 def run_task(task_name):
     emails = TASKS[task_name]["emails"].copy()
     random.shuffle(emails)
-    total_reward = 0.5  # ← fixed from 0.0
+    total_reward = 0.5
     correct = 0
+    num_emails = len(emails)
+
     for step_num, email in enumerate(emails, 1):
-        task_id = f"{task_name}_email_{email['id']}"
-        print(f"[START] task={task_id}", flush=True)
+        print(f"[START] task={task_name}", flush=True)
         try:
             response = client.chat.completions.create(
                 model=MODEL_NAME,
@@ -236,13 +237,15 @@ def run_task(task_name):
                 action = "reply"
         except Exception:
             action = "reply"
+
         reward = get_reward(email["label"], action)
         total_reward += reward
         if action == email["label"]:
             correct += 1
         print(f"[STEP] step={step_num} action={action} true_label={email['label']} reward={reward}", flush=True)
-    score = round(min(0.99, max(0.01, total_reward / len(emails))), 3)
-    print(f"[END] task={task_name} score={score} steps={len(emails)}", flush=True)
+
+    score = round(min(0.99, max(0.01, total_reward / num_emails)), 3)
+    print(f"[END] task={task_name} score={score} steps={num_emails}", flush=True)
     return score
 
 def run_agent():
