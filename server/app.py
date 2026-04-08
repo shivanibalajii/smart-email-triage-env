@@ -24,11 +24,22 @@ def history():
 @app.get("/grade")
 def grade():
     h = env.get_history()
+    if not h:
+        return {
+            "total_reward": 0.5,
+            "correct_decisions": 0,
+            "total_steps": 0,
+            "accuracy": 0.5,
+            "score": 0.5
+        }
     total = sum(s["reward"] for s in h)
     correct = sum(1 for s in h if s["correct"])
+    raw_accuracy = correct / len(h)
+    raw_score = total / len(h)
     return {
-        "total_reward": total,
+        "total_reward": round(min(0.99, max(0.01, total / len(h))), 3),
         "correct_decisions": correct,
         "total_steps": len(h),
-        "accuracy": correct / len(h) if h else 0
+        "accuracy": round(min(0.99, max(0.01, raw_accuracy)), 3),
+        "score": round(min(0.99, max(0.01, raw_score)), 3)
     }
