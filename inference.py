@@ -87,7 +87,7 @@ state = {
     "emails": [],
     "current_index": 0,
     "history": [],
-    "total_reward": 0.0,
+    "total_reward": 0.5,
     "correct": 0,
 }
 
@@ -101,7 +101,7 @@ def reset(task: str = "easy"):
     state["emails"] = emails
     state["current_index"] = 0
     state["history"] = []
-    state["total_reward"] = 0.0
+    state["total_reward"] = 0.5
     state["correct"] = 0
     first = emails[0]
     return Observation(
