@@ -51,13 +51,13 @@ TASKS = {
         ]
     },
     "hard": {
-        "description": "Classify ambiguous emails needing nuanced judgment",
+        "description": "Ambiguous emails requiring expert judgment",
         "emails": [
-            {"id": 11, "subject": "Your account password", "body": "Click this link to verify your bank password immediately.", "sender": "noreply@phish.com", "label": "flag"},
-            {"id": 12, "subject": "Server CPU at 98%", "body": "Automated alert: CPU usage critical on prod-server-01.", "sender": "monitoring@company.com", "label": "escalate"},
-            {"id": 13, "subject": "Verify your email address", "body": "Click to verify your account on our platform.", "sender": "no-reply@legit.com", "label": "reply"},
-            {"id": 14, "subject": "Ransomware detected on workstation", "body": "Workstation WS-042 infected. Disconnect immediately.", "sender": "security@company.com", "label": "escalate"},
-            {"id": 15, "subject": "Unusual API activity detected", "body": "10,000 failed login attempts on your API in the last hour.", "sender": "security@api.com", "label": "flag"},
+            {"id": 11, "subject": "Checking in", "body": "Hey, just wanted to follow up on our last conversation. Let me know when you're free.", "sender": "unknown@gmail.com", "label": "flag"},
+            {"id": 12, "subject": "System alert", "body": "CPU usage spike detected at 3am. Resolved automatically after 2 minutes.", "sender": "monitoring@company.com", "label": "archive"},
+            {"id": 13, "subject": "Urgent request", "body": "Hi, I need the Q3 report before end of day. The client is waiting.", "sender": "partner@external.com", "label": "reply"},
+            {"id": 14, "subject": "Password reset", "body": "A password reset was requested for your account. If this was you, no action needed.", "sender": "noreply@company.com", "label": "archive"},
+            {"id": 15, "subject": "Invoice discrepancy", "body": "We noticed a $50,000 difference in last month's invoice. Please review immediately.", "sender": "finance@vendor.com", "label": "escalate"},
         ]
     }
 }
@@ -79,8 +79,7 @@ REWARD_MAP = {
 
 def get_reward(true_label, action):
     base = REWARD_MAP.get((true_label, action), 0.15)
-    noise = round(random.uniform(-0.03, 0.03), 3)
-    return round(min(0.99, max(0.01, base + noise)), 3)
+    return round(min(0.99, max(0.01, base)), 3)
 
 state = {
     "task": "easy",

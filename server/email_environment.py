@@ -71,8 +71,7 @@ REWARD_MAP = {
 
 def get_reward(true_label, action):
     base = REWARD_MAP.get((true_label, action), 0.15)
-    noise = round(random.uniform(-0.03, 0.03), 3)
-    return round(min(0.99, max(0.01, base + noise)), 3)
+    return round(min(0.99, max(0.01, base)), 3)
 
 class EmailEnvironment:
     def __init__(self):

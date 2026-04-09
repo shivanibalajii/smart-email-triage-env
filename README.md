@@ -1,56 +1,94 @@
----
-title: Smart Email Triage Environment
-emoji: 📧
-colorFrom: blue
-colorTo: green
-sdk: docker
-pinned: false
----
-
 # Smart Email Triage Environment
 
-An RL environment for training agents to intelligently triage emails — built following the OpenEnv framework by Meta & Hugging Face.
+An RL environment where an AI agent learns to triage emails by classifying them as `escalate`, `reply`, `archive`, or `flag`. Simulates real-world email management at scale.
 
-## What it does
+## Why This Matters
+Enterprise workers spend 28% of their workday on email. This environment trains agents to prioritize critical emails, reduce response time, and avoid costly mistakes like missing urgent security alerts.
 
-An agent processes 25 diverse emails one by one and decides:
-- `escalate` — urgent, needs immediate human attention
-- `reply` — normal email needing a response
-- `archive` — spam or irrelevant
-- `flag` — security threat or phishing
+## Environment Description
+The agent receives emails one at a time and must classify each into one of 4 actions. Rewards are shaped to reflect real business consequences — missing an escalation is penalized more than misclassifying spam.
 
-## Reward Logic
+## Action Space
+| Action | Description |
+|--------|-------------|
+| `escalate` | Urgent — requires immediate human attention |
+| `reply` | Needs a response but not urgent |
+| `archive` | Low priority, no action needed |
+| `flag` | Suspicious — potential security threat |
 
-| Situation | Reward |
-|---|---|
-| Correctly escalated urgent email | +2.0 |
-| Correctly flagged security threat | +1.5 |
-| Correctly replied or archived | +1.0 |
-| Missed urgent email | -2.0 |
-| Missed security threat | -1.5 |
-| Unnecessary escalation | -1.0 |
-| Other wrong decision | -0.5 |
+## Observation Space
+| Field | Type | Description |
+|-------|------|-------------|
+| `email_id` | int | Unique email identifier |
+| `subject` | string | Email subject line |
+| `sender` | string | Sender email address |
+| `body` | string | Email body content |
+| `task` | string | Current task difficulty |
+| `difficulty` | string | easy / medium / hard |
+
+## Tasks
+| Task | Description | Baseline Score |
+|------|-------------|----------------|
+| `easy` | Obviously spam or urgent emails | 0.85 |
+| `medium` | Emails requiring context awareness | 0.75 |
+| `hard` | Ambiguous emails needing nuanced judgment | 0.65 |
+
+## Reward Function
+Rewards reflect real business consequences:
+- Correct classification: `0.95`
+- Missing an escalation: `0.05` (high penalty)
+- Flagging suspicious email correctly: `0.95`
+- Wrong action on urgent email: `0.05`
+- Partial credit for related actions: `0.15-0.30`
+
+All rewards are strictly within `(0.01, 0.99)`.
 
 ## API Endpoints
-
 | Endpoint | Method | Description |
-|---|---|---|
-| `/reset` | POST | Start new episode, returns first email |
-| `/step` | POST | Submit decision, returns next email + reward |
-| `/history` | GET | Full decision log |
-| `/grade` | GET | Score, accuracy, total reward |
-| `/grade_llm` | GET | LLM-based semantic evaluation of agent |
+|----------|--------|-------------|
+| `/reset?task=easy` | POST | Start new episode |
+| `/step` | POST | Take action |
+| `/state` | GET | Get current state |
+| `/grade` | GET | Get episode score |
+| `/history` | GET | Get full history |
 
-## Running Locally
+## Setup & Usage
+
+### Run locally
 ```bash
+git clone https://github.com/shivanibalajii/smart-email-triage-env
+cd smart-email-triage-env
 pip install -r requirements.txt
 uvicorn inference:app --host 0.0.0.0 --port 7860
 ```
 
-## Example Episode
+### Run with Docker
+```bash
+docker build -t smart-email-triage .
+docker run -p 7860:7860 smart-email-triage
 ```
-Email: 'URGENT: Server Down' → escalate ✅ +2.0
-Email: 'Win a FREE iPhone!' → archive ✅ +1.0
-Email: 'Phishing attempt' → flag ✅ +1.5
-Final Score: 8.5 | Accuracy: 100%
+
+### Run baseline agent
+```bash
+export API_BASE_URL=https://api-inference.huggingface.co/v1/
+export API_KEY=your_hf_token
+python inference.py
 ```
+
+## Baseline Scores
+| Task | Score |
+|------|-------|
+| easy | 0.85 |
+| medium | 0.75 |
+| hard | 0.65 |
+
+## Environment Variables
+| Variable | Description |
+|----------|-------------|
+| `API_BASE_URL` | LLM API endpoint |
+| `API_KEY` | API key |
+| `MODEL_NAME` | Model to use (default: meta-llama/Llama-3.3-70B-Instruct) |
+| `HF_TOKEN` | Hugging Face token |
+
+## HF Space
+https://huggingface.co/spaces/shivanibalajii/smart-email-triage-env-final
