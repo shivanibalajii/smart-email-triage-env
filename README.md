@@ -1,3 +1,14 @@
+---
+title: Smart Email Triage Environment
+emoji: 📧
+colorFrom: blue
+colorTo: green
+sdk: docker
+pinned: false
+tags:
+  - openenv
+---
+
 # Smart Email Triage Environment
 
 An RL environment where an AI agent learns to triage emails by classifying them as `escalate`, `reply`, `archive`, or `flag`. Simulates real-world email management at scale.
@@ -31,7 +42,7 @@ The agent receives emails one at a time and must classify each into one of 4 act
 |------|-------------|----------------|
 | `easy` | Obviously spam or urgent emails | 0.85 |
 | `medium` | Emails requiring context awareness | 0.75 |
-| `hard` | Ambiguous emails needing nuanced judgment | 0.65 |
+| `hard` | Ambiguous emails requiring expert judgment | 0.65 |
 
 ## Reward Function
 Rewards reflect real business consequences:
