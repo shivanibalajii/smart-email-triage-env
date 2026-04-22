@@ -1,8 +1,9 @@
 name: smart-email-triage-env
 version: "1.0.0"
 description: >
-  An RL environment where an agent triages emails by classifying them as
-  escalate, reply, archive, or flag. Simulates real-world email management.
+  An RL environment where an agent triages emails and resolves meeting conflicts
+  by classifying them as escalate, reply, archive, or flag.
+  Simulates real-world email management and scheduling under pressure.
 author: shivanibalajii
 space_url: https://huggingface.co/spaces/shivanibalajii/smart-email-triage-env-final
 
@@ -18,8 +19,13 @@ tasks:
     min_score: 0.01
     max_score: 0.99
   - id: hard
-    description: Classify ambiguous emails needing nuanced judgment
+    description: Ambiguous emails requiring expert judgment
     difficulty: hard
+    min_score: 0.01
+    max_score: 0.99
+  - id: meeting
+    description: Resolve meeting conflicts and scheduling issues under pressure
+    difficulty: expert
     min_score: 0.01
     max_score: 0.99
 
@@ -40,11 +46,11 @@ reward:
   min: 0.01
   max: 0.99
   description: >
-    0.99 for correct classification, partial credit for related actions,
-    0.01 for dangerous misclassifications.
+    0.95 for correct classification, partial credit for related actions,
+    0.05 for dangerous misclassifications like ignoring urgent emails.
 
 endpoints:
-  reset: POST /reset?task={easy|medium|hard}
+  reset: POST /reset?task={easy|medium|hard|meeting}
   step: POST /step
   state: GET /state
   grade: GET /grade
@@ -55,3 +61,4 @@ baseline_scores:
   easy: 0.85
   medium: 0.75
   hard: 0.65
+  meeting: 0.66

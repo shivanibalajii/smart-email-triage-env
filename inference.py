@@ -59,6 +59,16 @@ TASKS = {
             {"id": 14, "subject": "Password reset", "body": "A password reset was requested for your account. If this was you, no action needed.", "sender": "noreply@company.com", "label": "archive"},
             {"id": 15, "subject": "Invoice discrepancy", "body": "We noticed a $50,000 difference in last month's invoice. Please review immediately.", "sender": "finance@vendor.com", "label": "escalate"},
         ]
+    },
+    "meeting": {
+        "description": "Resolve meeting conflicts and scheduling issues under pressure",
+        "emails": [
+            {"id": 16, "subject": "Meeting conflict: Two calls at 3pm", "body": "You have a client call and team standup both at 3pm. Client is important but team needs you too.", "sender": "calendar@company.com", "label": "escalate"},
+            {"id": 17, "subject": "Board meeting rescheduled to tomorrow", "body": "Board meeting moved to tomorrow 9am. You have a flight at 10am tomorrow.", "sender": "exec@company.com", "label": "escalate"},
+            {"id": 18, "subject": "Optional team lunch today", "body": "Team is going for lunch at 1pm today. No agenda, just casual catchup.", "sender": "hr@company.com", "label": "archive"},
+            {"id": 19, "subject": "Client demo delayed by 30 mins", "body": "Client running late, demo pushed to 2:30pm instead of 2pm.", "sender": "sales@company.com", "label": "reply"},
+            {"id": 20, "subject": "URGENT: Investor call in 10 minutes", "body": "Investor wants emergency call NOW about Q3 numbers. Drop everything.", "sender": "cfo@company.com", "label": "escalate"},
+        ]
     }
 }
 
@@ -250,7 +260,7 @@ def run_task(task_name):
 
 def run_agent():
     scores = {}
-    for task_name in ["easy", "medium", "hard"]:
+    for task_name in ["easy", "medium", "hard", "meeting"]:
         scores[task_name] = run_task(task_name)
     overall = round(min(0.99, max(0.01, sum(scores.values()) / len(scores))), 3)
     print(f"[END] task=smart_email_triage score={overall} steps={sum(len(TASKS[t]['emails']) for t in TASKS)}", flush=True)
