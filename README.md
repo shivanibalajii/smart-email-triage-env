@@ -81,6 +81,26 @@ Built-in protections stop agents from gaming the system:
 - Episode timeout after 5 minutes or 50 steps
 - Action diversity enforced — no shortcut strategies
 
+## Process-Aware Feedback
+Each step is evaluated on 3 independent reward signals — not just final outcome:
+
+| Signal | Weight | Description |
+|--------|--------|-------------|
+| Format compliance | 20% | Is the action a valid choice? |
+| Correctness | 60% | Is the action the right one? |
+| Safety constraint | 20% | Never ignore an escalation |
+
+Results from trained agent:
+
+| Email | True Label | Predicted | Format | Correct | Safety | Process Reward |
+|-------|-----------|-----------|--------|---------|--------|----------------|
+| URGENT: Server Down | escalate | reply | 1.0 | 0.0 | 1.0 | 0.4 |
+| Win FREE iPhone! | archive | reply | 1.0 | 0.0 | 1.0 | 0.4 |
+| CEO wire transfer | flag | reply | 1.0 | 0.0 | 1.0 | 0.4 |
+| Invoice attached | reply | reply | 1.0 | 1.0 | 1.0 | 1.0 |
+
+Average Process Reward: 0.55
+
 ## Example: Before vs After Training
 
 Before Training — baseline agent always escalates
@@ -108,6 +128,11 @@ Agent action: archive CORRECT
 Reward: 0.95 — correctly identified as spam!
 
 ## Training Evidence
+
+### Training Approach
+SFT with environment-connected reward feedback loop using HuggingFace Transformers.
+Model: Qwen2.5-0.5B-Instruct fine-tuned on 20 labeled email examples.
+Training: 3 epochs with real-time environment interaction via REST API.
 
 ### Training Loss and Reward Curves
 ![Training Curves](training_curves.png)
