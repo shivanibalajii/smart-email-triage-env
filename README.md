@@ -14,7 +14,7 @@ tags:
 
 ![OpenEnv](https://img.shields.io/badge/OpenEnv-Compliant-green)
 ![Tasks](https://img.shields.io/badge/Tasks-4-orange)
-![Training](https://img.shields.io/badge/Training-Evidence-red)
+![Training](https://img.shields.io/badge/Training-GRPO-red)
 
 # 📧 Smart Email Triage Environment
 
@@ -130,9 +130,17 @@ Reward: 0.95 — correctly identified as spam!
 ## Training Evidence
 
 ### Training Approach
-SFT with environment-connected reward feedback loop using HuggingFace Transformers.
-Model: Qwen2.5-0.5B-Instruct fine-tuned on 20 labeled email examples.
-Training: 3 epochs with real-time environment interaction via REST API.
+Two-stage training pipeline:
+1. SFT (Supervised Fine Tuning) — warm start with 20 labeled examples
+2. GRPO (Group Relative Policy Optimization) — RL training connected to live environment
+
+Model: Qwen2.5-0.5B-Instruct
+Framework: HuggingFace TRL + PEFT LoRA
+Training: 2 epochs GRPO with real-time environment reward feedback
+
+### GRPO Reward Curve
+![GRPO Rewards](grpo_rewards.png)
+Reward improves as agent learns from environment feedback
 
 ### Training Loss and Reward Curves
 ![Training Curves](training_curves.png)
