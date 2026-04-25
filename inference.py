@@ -88,6 +88,11 @@ REWARD_MAP = {
     ("reply", "escalate"): 0.15,
 }
 
+# Multi-signal reward labels
+URGENCY_LABELS = ["escalate"]
+SECURITY_LABELS = ["flag"]
+BUSINESS_CRITICAL = ["escalate", "flag"]
+
 # Anti-hack tracking
 action_counts = {}
 
@@ -106,9 +111,43 @@ def get_reward(true_label, action, session_id="default"):
     if same_action_ratio > 0.8 and total_actions > 3:
         return round(min(0.99, max(0.01, 0.15)), 3)
 
-    # Normal reward
+    # Signal 1: Correctness (60% weight)
     base = REWARD_MAP.get((true_label, action), 0.15)
-    return round(min(0.99, max(0.01, base)), 3)
+    correctness = base * 0.60
+
+    # Signal 2: Urgency awareness (15% weight)
+    if true_label in URGENCY_LABELS:
+        if action in URGENCY_LABELS:
+            urgency = 0.15
+        elif action == "flag":
+            urgency = 0.08
+        else:
+            urgency = 0.01
+    else:
+        urgency = 0.15 if action not in URGENCY_LABELS else 0.05
+
+    # Signal 3: Security awareness (15% weight)
+    if true_label in SECURITY_LABELS:
+        if action in SECURITY_LABELS:
+            security = 0.15
+        elif action == "escalate":
+            security = 0.08
+        else:
+            security = 0.01
+    else:
+        security = 0.15 if action not in SECURITY_LABELS else 0.05
+
+    # Signal 4: Business impact (10% weight)
+    if true_label in BUSINESS_CRITICAL and action not in BUSINESS_CRITICAL:
+        business = 0.01
+    elif true_label not in BUSINESS_CRITICAL and action in BUSINESS_CRITICAL:
+        business = 0.05
+    else:
+        business = 0.10
+
+    # Combined multi-signal reward
+    total = correctness + urgency + security + business
+    return round(min(0.99, max(0.01, total)), 3)
 
 state = {
     "task": "easy",
@@ -133,7 +172,6 @@ def reset(task: str = "easy"):
     state["total_reward"] = 0.5
     state["correct"] = 0
     state["start_time"] = time.time()
-    # Clear anti-hack tracking for this task
     if task in action_counts:
         action_counts[task] = {}
     first = emails[0]
@@ -153,12 +191,10 @@ class StepRequest(BaseModel):
 def step(req: StepRequest):
     idx = state["current_index"]
 
-    # Timeout check — episode must complete within 5 minutes
     elapsed = time.time() - state["start_time"]
     if elapsed > 300:
         return {"done": True, "message": "Episode timeout — took too long.", "timeout": True}
 
-    # Step limit check
     if idx > 50:
         return {"done": True, "message": "Episode timeout — too many steps."}
 

@@ -15,6 +15,7 @@ tags:
 ![OpenEnv](https://img.shields.io/badge/OpenEnv-Compliant-green)
 ![Tasks](https://img.shields.io/badge/Tasks-4-orange)
 ![Training](https://img.shields.io/badge/Training-GRPO-red)
+![Rewards](https://img.shields.io/badge/Rewards-Multi--Signal-purple)
 
 # 📧 Smart Email Triage Environment
 
@@ -34,7 +35,7 @@ This environment trains AI agents to make those decisions — correctly, every t
 - **Reward hacking is easy:** an agent that always escalates gets partial credit — we penalize this
 
 ## What I Built
-An OpenEnv-compliant RL environment where an AI agent classifies emails and resolves meeting conflicts across 4 difficulty levels. The reward function reflects real business consequences — missing a security breach is penalized 19x more than misclassifying spam.
+An OpenEnv-compliant RL environment where an AI agent classifies emails and resolves meeting conflicts across 4 difficulty levels. Uses a multi-signal reward system with 4 independent components — missing a security breach is penalized 19x more than misclassifying spam.
 
 ## Action Space
 | Action | Description |
@@ -64,13 +65,22 @@ Tasks are designed with increasing difficulty so the agent learns progressively:
 | hard | Ambiguous emails requiring expert judgment | 0.65 | Even humans disagree on the right answer |
 | meeting | Resolve meeting conflicts under pressure | 0.66 | Requires business judgment + calendar awareness |
 
-## Reward Function
-| Situation | Reward | Reasoning |
-|-----------|--------|-----------|
-| Correct classification | 0.95 | Agent did the right thing |
-| Missing urgent escalation | 0.05 | Catastrophic — costs money |
-| Flagging when escalate needed | 0.30 | Partial credit — at least suspicious |
-| Wrong on ambiguous email | 0.15 | Partial credit for related action |
+## Multi-Signal Reward System
+4 independent reward components — not just right/wrong:
+
+| Signal | Weight | Description |
+|--------|--------|-------------|
+| Correctness | 60% | Is the action the right one? |
+| Urgency awareness | 15% | Does agent understand urgency? |
+| Security awareness | 15% | Does agent detect security threats? |
+| Business impact | 10% | Does agent understand consequences? |
+
+| Situation | Reward |
+|-----------|--------|
+| Correct classification | 0.95 |
+| Missing urgent escalation | 0.05 |
+| Flagging when escalate needed | 0.30 |
+| Wrong on ambiguous email | 0.15 |
 
 All rewards strictly within (0.01, 0.99).
 
@@ -82,22 +92,13 @@ Built-in protections stop agents from gaming the system:
 - Action diversity enforced — no shortcut strategies
 
 ## Process-Aware Feedback
-Each step is evaluated on 3 independent reward signals — not just final outcome:
+Each step evaluated on 3 independent signals:
 
 | Signal | Weight | Description |
 |--------|--------|-------------|
 | Format compliance | 20% | Is the action a valid choice? |
 | Correctness | 60% | Is the action the right one? |
 | Safety constraint | 20% | Never ignore an escalation |
-
-Results from trained agent:
-
-| Email | True Label | Predicted | Format | Correct | Safety | Process Reward |
-|-------|-----------|-----------|--------|---------|--------|----------------|
-| URGENT: Server Down | escalate | reply | 1.0 | 0.0 | 1.0 | 0.4 |
-| Win FREE iPhone! | archive | reply | 1.0 | 0.0 | 1.0 | 0.4 |
-| CEO wire transfer | flag | reply | 1.0 | 0.0 | 1.0 | 0.4 |
-| Invoice attached | reply | reply | 1.0 | 1.0 | 1.0 | 1.0 |
 
 Average Process Reward: 0.55
 
