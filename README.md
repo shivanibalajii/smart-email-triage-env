@@ -14,7 +14,7 @@ tags:
 
 ![OpenEnv](https://img.shields.io/badge/OpenEnv-Compliant-green)
 ![Tasks](https://img.shields.io/badge/Tasks-4-orange)
-![Training](https://img.shields.io/badge/Training-GRPO-red)
+![Training](https://img.shields.io/badge/Training-Unsloth+GRPO-red)
 ![Rewards](https://img.shields.io/badge/Rewards-Multi--Signal-purple)
 
 # 📧 Smart Email Triage Environment
@@ -131,13 +131,18 @@ Reward: 0.95 — correctly identified as spam!
 ## Training Evidence
 
 ### Training Approach
-Two-stage training pipeline:
+Three-stage training pipeline:
 1. SFT (Supervised Fine Tuning) — warm start with 20 labeled examples
-2. GRPO (Group Relative Policy Optimization) — RL training connected to live environment
+2. GRPO — RL training connected to live environment
+3. Unsloth GRPO — 2x faster optimized training with same environment
 
 Model: Qwen2.5-0.5B-Instruct
-Framework: HuggingFace TRL + PEFT LoRA
-Training: 2 epochs GRPO with real-time environment reward feedback
+Framework: HuggingFace TRL + Unsloth + PEFT LoRA
+Training: 2 epochs Unsloth GRPO with real-time environment reward feedback
+
+### Unsloth GRPO Reward Curve
+![Unsloth Rewards](unsloth_rewards.png)
+2x faster training with Unsloth showing reward improvement
 
 ### GRPO Reward Curve
 ![GRPO Rewards](grpo_rewards.png)
@@ -209,5 +214,5 @@ python inference.py
 ## Resources
 - HF Space: https://huggingface.co/spaces/shivanibalajii/smart-email-triage-env-final
 - GitHub: https://github.com/shivanibalajii/smart-email-triage-env
-- Training Notebook (GRPO): https://colab.research.google.com/drive/1jKIFSAtWJAc3RH_aGdcYzh7YscGJlm5Q?usp=sharing
+- Training Notebook (Unsloth GRPO): https://colab.research.google.com/drive/1jKIFSAtWJAc3RH_aGdcYzh7YscGJlm5Q?usp=sharing
 - Blog: https://huggingface.co/shivanibalajii/smart-email-triage-blog
