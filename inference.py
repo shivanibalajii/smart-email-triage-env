@@ -1,6 +1,7 @@
 import os
 import json
 import random
+import time
 from openai import OpenAI
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -87,7 +88,25 @@ REWARD_MAP = {
     ("reply", "escalate"): 0.15,
 }
 
-def get_reward(true_label, action):
+# Anti-hack tracking
+action_counts = {}
+
+def get_reward(true_label, action, session_id="default"):
+    # Anti-hack check 1: Valid action only
+    valid_actions = ["escalate", "reply", "archive", "flag"]
+    if action not in valid_actions:
+        return 0.01
+
+    # Anti-hack check 2: Penalize spamming same action
+    if session_id not in action_counts:
+        action_counts[session_id] = {}
+    action_counts[session_id][action] = action_counts[session_id].get(action, 0) + 1
+    total_actions = sum(action_counts[session_id].values())
+    same_action_ratio = action_counts[session_id][action] / max(1, total_actions)
+    if same_action_ratio > 0.8 and total_actions > 3:
+        return round(min(0.99, max(0.01, 0.15)), 3)
+
+    # Normal reward
     base = REWARD_MAP.get((true_label, action), 0.15)
     return round(min(0.99, max(0.01, base)), 3)
 
@@ -98,6 +117,7 @@ state = {
     "history": [],
     "total_reward": 0.5,
     "correct": 0,
+    "start_time": time.time(),
 }
 
 @app.post("/reset")
@@ -112,6 +132,10 @@ def reset(task: str = "easy"):
     state["history"] = []
     state["total_reward"] = 0.5
     state["correct"] = 0
+    state["start_time"] = time.time()
+    # Clear anti-hack tracking for this task
+    if task in action_counts:
+        action_counts[task] = {}
     first = emails[0]
     return Observation(
         email_id=first["id"],
@@ -128,12 +152,23 @@ class StepRequest(BaseModel):
 @app.post("/step")
 def step(req: StepRequest):
     idx = state["current_index"]
+
+    # Timeout check — episode must complete within 5 minutes
+    elapsed = time.time() - state["start_time"]
+    if elapsed > 300:
+        return {"done": True, "message": "Episode timeout — took too long.", "timeout": True}
+
+    # Step limit check
+    if idx > 50:
+        return {"done": True, "message": "Episode timeout — too many steps."}
+
     if idx >= len(state["emails"]):
         return {"done": True, "message": "Episode complete. Call /reset to start again."}
+
     email = state["emails"][idx]
     action = req.action.strip().lower()
     true_label = email["label"]
-    reward = get_reward(true_label, action)
+    reward = get_reward(true_label, action, session_id=state["task"])
     correct = action == true_label
     state["total_reward"] += reward
     if correct:
@@ -160,12 +195,17 @@ def step(req: StepRequest):
         ).dict(),
         "reward": Reward(reward=reward, correct=correct, true_label=true_label).dict(),
         "done": done,
-        "info": {"step": idx + 1, "total": len(state["emails"])},
+        "info": {
+            "step": idx + 1,
+            "total": len(state["emails"]),
+            "elapsed_seconds": round(elapsed, 1),
+        },
     }
 
 @app.get("/state")
 def get_state():
     idx = max(1, state["current_index"])
+    elapsed = time.time() - state["start_time"]
     return {
         "task": state["task"],
         "current_index": state["current_index"],
@@ -173,6 +213,7 @@ def get_state():
         "total_reward": round(min(0.99, max(0.01, state["total_reward"] / idx)), 3),
         "correct": state["correct"],
         "accuracy": round(min(0.99, max(0.01, state["correct"] / idx)), 3),
+        "elapsed_seconds": round(elapsed, 1),
     }
 
 @app.get("/history")
@@ -248,7 +289,7 @@ def run_task(task_name):
         except Exception:
             action = "reply"
 
-        reward = get_reward(email["label"], action)
+        reward = get_reward(email["label"], action, session_id=task_name)
         total_reward += reward
         if action == email["label"]:
             correct += 1
