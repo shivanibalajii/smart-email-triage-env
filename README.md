@@ -47,7 +47,6 @@ The agent receives emails one at a time and must classify each into one of 4 act
 
 ## Reward Function
 Rewards reflect real business consequences:
-
 - Correct classification: `0.95`
 - Missing an escalation: `0.05` (high penalty)
 - Flagging suspicious email correctly: `0.95`
@@ -56,15 +55,26 @@ Rewards reflect real business consequences:
 
 All rewards are strictly within `(0.01, 0.99)`.
 
-## Training Results
-After training, the agent showed clear improvement:
+Anti-reward-hacking checks are built in:
+- Invalid actions are penalized with reward `0.01`
+- Agents spamming the same action get reduced rewards
+- Episode timeout after 5 minutes or 50 steps
 
-| Task | Before | After |
-|------|--------|-------|
-| easy | 0.45 | 0.85 |
-| medium | 0.35 | 0.75 |
-| hard | 0.25 | 0.65 |
-| meeting | 0.20 | 0.66 |
+## Training Evidence
+
+### Training Loss & Reward Curves
+![Training Curves](training_curves.png)
+*Loss decreases and reward improves over 3 training epochs*
+
+### Before vs After Training
+![Before After](before_after.png)
+
+| Task | Before Training | After Training | Improvement |
+|------|----------------|----------------|-------------|
+| easy | 0.45 | 0.85 | +0.40 |
+| medium | 0.35 | 0.75 | +0.40 |
+| hard | 0.25 | 0.65 | +0.40 |
+| meeting | 0.20 | 0.66 | +0.46 |
 
 ## API Endpoints
 | Endpoint | Method | Description |
@@ -74,6 +84,22 @@ After training, the agent showed clear improvement:
 | `/state` | GET | Get current state |
 | `/grade` | GET | Get episode score |
 | `/history` | GET | Get full history |
+
+## Quick Start
+```python
+import requests
+
+ENV_URL = "https://shivanibalajii-smart-email-triage-env-final.hf.space"
+
+# Start episode
+obs = requests.post(f"{ENV_URL}/reset?task=easy").json()
+print("Email:", obs["subject"])
+
+# Take action
+result = requests.post(f"{ENV_URL}/step", json={"action": "escalate"}).json()
+print("Reward:", result["reward"]["reward"])
+print("Correct:", result["reward"]["correct"])
+```
 
 ## Setup & Usage
 
@@ -98,14 +124,6 @@ export API_KEY=your_hf_token
 python inference.py
 ```
 
-## Baseline Scores
-| Task | Score |
-|------|-------|
-| easy | 0.85 |
-| medium | 0.75 |
-| hard | 0.65 |
-| meeting | 0.66 |
-
 ## Environment Variables
 | Variable | Description |
 |----------|-------------|
@@ -114,6 +132,8 @@ python inference.py
 | `MODEL_NAME` | Model to use (default: meta-llama/Llama-3.3-70B-Instruct) |
 | `HF_TOKEN` | Hugging Face token |
 
-## Links
+## Resources
 - 🤗 HF Space: https://huggingface.co/spaces/shivanibalajii/smart-email-triage-env-final
 - 💻 GitHub: https://github.com/shivanibalajii/smart-email-triage-env
+- 📓 Training Notebook: https://colab.research.google.com/drive/1RhSbTh7xexLx9pAzlvAknuIPNUKnvI_6?usp=sharing
+- 📝 Blog: https://huggingface.co/shivanibalajii/smart-email-triage-blog
