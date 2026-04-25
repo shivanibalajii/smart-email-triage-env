@@ -7,64 +7,111 @@ sdk: docker
 pinned: false
 tags:
   - openenv
+  - reinforcement-learning
+  - email
+  - rl-environment
 ---
 
-# Smart Email Triage Environment
+![OpenEnv](https://img.shields.io/badge/OpenEnv-Compliant-green)
+![Tasks](https://img.shields.io/badge/Tasks-4-orange)
+![Training](https://img.shields.io/badge/Training-Evidence-red)
 
-An RL environment where an AI agent learns to triage emails by classifying them as `escalate`, `reply`, `archive`, or `flag`. Simulates real-world email management at scale.
+# 📧 Smart Email Triage Environment
 
-## Why This Matters
-Enterprise workers spend 28% of their workday on email. This environment trains agents to prioritize critical emails, reduce response time, and avoid costly mistakes like missing urgent security alerts.
+## The Problem
+Imagine you're an overworked executive with 500 unread emails.
+One contains a ransomware attack notification. One is spam.
+One is a legal threat. One is a meeting conflict that will embarrass you in front of investors.
+Missing the wrong one costs millions.
 
-## Environment Description
-The agent receives emails one at a time and must classify each into one of 4 actions. Rewards are shaped to reflect real business consequences — missing an escalation is penalized more than misclassifying spam.
+This environment trains AI agents to make those decisions — correctly, every time.
+
+## Why This Is Hard for LLMs
+- **Context matters:** same words, different senders = different actions
+- **Stakes are asymmetric:** missing an escalation >> misclassifying spam
+- **Ambiguity is real:** "Checking in" from unknown sender — flag or reply?
+- **Meeting conflicts require business judgment under time pressure**
+- **Reward hacking is easy:** an agent that always escalates gets partial credit — we penalize this
+
+## What I Built
+An OpenEnv-compliant RL environment where an AI agent classifies emails and resolves meeting conflicts across 4 difficulty levels. The reward function reflects real business consequences — missing a security breach is penalized 19x more than misclassifying spam.
 
 ## Action Space
 | Action | Description |
 |--------|-------------|
-| `escalate` | Urgent — requires immediate human attention |
-| `reply` | Needs a response but not urgent |
-| `archive` | Low priority, no action needed |
-| `flag` | Suspicious — potential security threat |
+| escalate | Urgent — requires immediate human attention |
+| reply | Needs a response but not urgent |
+| archive | Low priority, no action needed |
+| flag | Suspicious — potential security threat |
 
 ## Observation Space
 | Field | Type | Description |
 |-------|------|-------------|
-| `email_id` | int | Unique email identifier |
-| `subject` | string | Email subject line |
-| `sender` | string | Sender email address |
-| `body` | string | Email body content |
-| `task` | string | Current task difficulty |
-| `difficulty` | string | easy / medium / hard / meeting |
+| email_id | int | Unique email identifier |
+| subject | string | Email subject line |
+| sender | string | Sender email address |
+| body | string | Email body content |
+| task | string | Current task difficulty |
+| difficulty | string | easy / medium / hard / meeting |
 
-## Tasks
-| Task | Description | Baseline Score |
-|------|-------------|----------------|
-| `easy` | Obviously spam or urgent emails | 0.85 |
-| `medium` | Emails requiring context awareness | 0.75 |
-| `hard` | Ambiguous emails requiring expert judgment | 0.65 |
-| `meeting` | Resolve meeting conflicts under pressure | 0.66 |
+## Curriculum Learning
+Tasks are designed with increasing difficulty so the agent learns progressively:
+
+| Task | Description | Baseline Score | Why It's Hard |
+|------|-------------|----------------|---------------|
+| easy | Obviously spam or urgent emails | 0.85 | Even humans get these right instantly |
+| medium | Emails requiring context awareness | 0.75 | Same words, different sender = different action |
+| hard | Ambiguous emails requiring expert judgment | 0.65 | Even humans disagree on the right answer |
+| meeting | Resolve meeting conflicts under pressure | 0.66 | Requires business judgment + calendar awareness |
 
 ## Reward Function
-Rewards reflect real business consequences:
-- Correct classification: `0.95`
-- Missing an escalation: `0.05` (high penalty)
-- Flagging suspicious email correctly: `0.95`
-- Wrong action on urgent email: `0.05`
-- Partial credit for related actions: `0.15-0.30`
+| Situation | Reward | Reasoning |
+|-----------|--------|-----------|
+| Correct classification | 0.95 | Agent did the right thing |
+| Missing urgent escalation | 0.05 | Catastrophic — costs money |
+| Flagging when escalate needed | 0.30 | Partial credit — at least suspicious |
+| Wrong on ambiguous email | 0.15 | Partial credit for related action |
 
-All rewards are strictly within `(0.01, 0.99)`.
+All rewards strictly within (0.01, 0.99).
 
-Anti-reward-hacking checks are built in:
-- Invalid actions are penalized with reward `0.01`
-- Agents spamming the same action get reduced rewards
+## Anti-Reward Hacking
+Built-in protections stop agents from gaming the system:
+- Invalid actions penalized with reward 0.01
+- Agents spamming same action get reduced rewards
 - Episode timeout after 5 minutes or 50 steps
+- Action diversity enforced — no shortcut strategies
+
+## Example: Before vs After Training
+
+Before Training — baseline agent always escalates
+
+Email: URGENT: CEO needs wire transfer. Keep it secret.
+Sender: ceo.fake@gmail.com
+Agent action: escalate WRONG
+Reward: 0.30 — missed the scam signal, should be flag
+
+Email: Win a FREE iPhone now!
+Sender: promo@spam.com
+Agent action: escalate WRONG
+Reward: 0.15 — completely wrong, should be archive
+
+After Training — trained agent
+
+Email: URGENT: CEO needs wire transfer. Keep it secret.
+Sender: ceo.fake@gmail.com
+Agent action: flag CORRECT
+Reward: 0.95 — correctly identified as scam!
+
+Email: Win a FREE iPhone now!
+Sender: promo@spam.com
+Agent action: archive CORRECT
+Reward: 0.95 — correctly identified as spam!
 
 ## Training Evidence
 
-### Training Loss & Reward Curves
+### Training Loss and Reward Curves
 ![Training Curves](training_curves.png)
-*Loss decreases and reward improves over 3 training epochs*
+Loss decreases steadily over 3 training epochs while reward improves
 
 ### Before vs After Training
 ![Before After](before_after.png)
@@ -79,61 +126,54 @@ Anti-reward-hacking checks are built in:
 ## API Endpoints
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/reset?task=easy` | POST | Start new episode |
-| `/step` | POST | Take action |
-| `/state` | GET | Get current state |
-| `/grade` | GET | Get episode score |
-| `/history` | GET | Get full history |
+| /reset?task=easy | POST | Start new episode |
+| /step | POST | Take action |
+| /state | GET | Get current state |
+| /grade | GET | Get episode score |
+| /history | GET | Get full decision history |
 
 ## Quick Start
-```python
+
 import requests
 
 ENV_URL = "https://shivanibalajii-smart-email-triage-env-final.hf.space"
 
-# Start episode
 obs = requests.post(f"{ENV_URL}/reset?task=easy").json()
 print("Email:", obs["subject"])
+print("From:", obs["sender"])
 
-# Take action
 result = requests.post(f"{ENV_URL}/step", json={"action": "escalate"}).json()
 print("Reward:", result["reward"]["reward"])
 print("Correct:", result["reward"]["correct"])
-```
+print("True label:", result["reward"]["true_label"])
 
-## Setup & Usage
+## Setup and Usage
 
-### Run locally
-```bash
+Run locally:
 git clone https://github.com/shivanibalajii/smart-email-triage-env
 cd smart-email-triage-env
 pip install -r requirements.txt
 uvicorn inference:app --host 0.0.0.0 --port 7860
-```
 
-### Run with Docker
-```bash
+Run with Docker:
 docker build -t smart-email-triage .
 docker run -p 7860:7860 smart-email-triage
-```
 
-### Run baseline agent
-```bash
+Run baseline agent:
 export API_BASE_URL=https://api-inference.huggingface.co/v1/
 export API_KEY=your_hf_token
 python inference.py
-```
 
 ## Environment Variables
 | Variable | Description |
 |----------|-------------|
-| `API_BASE_URL` | LLM API endpoint |
-| `API_KEY` | API key |
-| `MODEL_NAME` | Model to use (default: meta-llama/Llama-3.3-70B-Instruct) |
-| `HF_TOKEN` | Hugging Face token |
+| API_BASE_URL | LLM API endpoint |
+| API_KEY | API key |
+| MODEL_NAME | Model to use default meta-llama/Llama-3.3-70B-Instruct |
+| HF_TOKEN | Hugging Face token |
 
 ## Resources
-- 🤗 HF Space: https://huggingface.co/spaces/shivanibalajii/smart-email-triage-env-final
-- 💻 GitHub: https://github.com/shivanibalajii/smart-email-triage-env
-- 📓 Training Notebook: https://colab.research.google.com/drive/1RhSbTh7xexLx9pAzlvAknuIPNUKnvI_6?usp=sharing
-- 📝 Blog: https://huggingface.co/shivanibalajii/smart-email-triage-blog
+- HF Space: https://huggingface.co/spaces/shivanibalajii/smart-email-triage-env-final
+- GitHub: https://github.com/shivanibalajii/smart-email-triage-env
+- Training Notebook: https://colab.research.google.com/drive/1RhSbTh7xexLx9pAzlvAknuIPNUKnvI_6?usp=sharing
+- Blog: https://huggingface.co/shivanibalajii/smart-email-triage-blog
