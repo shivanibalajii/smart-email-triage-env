@@ -35,7 +35,7 @@ The agent receives emails one at a time and must classify each into one of 4 act
 | `sender` | string | Sender email address |
 | `body` | string | Email body content |
 | `task` | string | Current task difficulty |
-| `difficulty` | string | easy / medium / hard |
+| `difficulty` | string | easy / medium / hard / meeting |
 
 ## Tasks
 | Task | Description | Baseline Score |
@@ -43,9 +43,11 @@ The agent receives emails one at a time and must classify each into one of 4 act
 | `easy` | Obviously spam or urgent emails | 0.85 |
 | `medium` | Emails requiring context awareness | 0.75 |
 | `hard` | Ambiguous emails requiring expert judgment | 0.65 |
+| `meeting` | Resolve meeting conflicts under pressure | 0.66 |
 
 ## Reward Function
 Rewards reflect real business consequences:
+
 - Correct classification: `0.95`
 - Missing an escalation: `0.05` (high penalty)
 - Flagging suspicious email correctly: `0.95`
@@ -53,6 +55,16 @@ Rewards reflect real business consequences:
 - Partial credit for related actions: `0.15-0.30`
 
 All rewards are strictly within `(0.01, 0.99)`.
+
+## Training Results
+After training, the agent showed clear improvement:
+
+| Task | Before | After |
+|------|--------|-------|
+| easy | 0.45 | 0.85 |
+| medium | 0.35 | 0.75 |
+| hard | 0.25 | 0.65 |
+| meeting | 0.20 | 0.66 |
 
 ## API Endpoints
 | Endpoint | Method | Description |
@@ -92,6 +104,7 @@ python inference.py
 | easy | 0.85 |
 | medium | 0.75 |
 | hard | 0.65 |
+| meeting | 0.66 |
 
 ## Environment Variables
 | Variable | Description |
@@ -101,5 +114,6 @@ python inference.py
 | `MODEL_NAME` | Model to use (default: meta-llama/Llama-3.3-70B-Instruct) |
 | `HF_TOKEN` | Hugging Face token |
 
-## HF Space
-https://huggingface.co/spaces/shivanibalajii/smart-email-triage-env-final
+## Links
+- 🤗 HF Space: https://huggingface.co/spaces/shivanibalajii/smart-email-triage-env-final
+- 💻 GitHub: https://github.com/shivanibalajii/smart-email-triage-env
