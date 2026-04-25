@@ -208,5 +208,5 @@ python inference.py
 ## Resources
 - HF Space: https://huggingface.co/spaces/shivanibalajii/smart-email-triage-env-final
 - GitHub: https://github.com/shivanibalajii/smart-email-triage-env
-- Training Notebook: https://colab.research.google.com/drive/1RhSbTh7xexLx9pAzlvAknuIPNUKnvI_6?usp=sharing
+- Training Notebook (GRPO): https://colab.research.google.com/drive/1jKIFSAtWJAc3RH_aGdcYzh7YscGJlm5Q?usp=sharing
 - Blog: https://huggingface.co/shivanibalajii/smart-email-triage-blog
